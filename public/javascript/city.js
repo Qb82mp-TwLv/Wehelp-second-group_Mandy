@@ -1,4 +1,12 @@
 
+// 設定首頁
+const homePage = document.getElementById("homePage");
+if (homePage){
+    homePage.addEventListener("click", function() {
+        window.location.href = "/";
+    });
+}
+
 // 取得時間
 async function getTime(time) {
     const get_time = document.querySelector(".get-time");
@@ -7,90 +15,46 @@ async function getTime(time) {
     }
 }
 
+const locationData = document.querySelector(".location-data");
+getCityName();
+
 // 取得city的名稱
 async function getCityName() {
     const urlParams = new URLSearchParams(window.location.search);
-    const cityName = urlParams.get("city");
+    const cityName = urlParams.get("county");
     if (cityName !== undefined && cityName !== ""){
         getCityLocationInfo(cityName);
     }
 }
 
-const locationData = document.querySelector(".location-data");
 
-getCityLocationInfo("台北市");
-async function getCityLocationInfo(city) {
+async function getCityLocationInfo(name) {
     if (locationData){
         try{
-            // const url = `/api/airquality?county=${city}`;
-            // const response = await fetch(url, {method: "GET"});
+            const url = `/api/airquality?county=${name}`;
+            const response = await fetch(url, {method: "GET"});
 
-            // const data = await response.json();
+            const data = await response.json();
 
-            // if (!response.ok || data.error !== undefined){
+            if (!response.ok || data.error !== undefined){
+                const dataContainer = document.createElement("div");
+                dataContainer.classList.add("data-container-nodata");
+                dataContainer.textContent = "抱歉發生錯誤，請看其他縣市的資料，謝謝。";
 
-            // }else{
-            //     createLocationObject();
-            // }
-            const data = [{
-                "city":"台北市",
-                "location":"汐止",
-                    "airquality":{
-                        "AQI":"71",
-                        "status":"普通",
-                        "pm2.5":"25",
-                        "pm2.5_avg":"19.8",
-                        "pm10":"43",
-                        "pm10_avg":"37",
-                        "o3":"42",
-                        "o3_8hr":"25",
-                        "co":"0.45",
-                        "co_8hr":"0.5",
-                        "so2":"1.1",
-                        "no2":"26"
-                    },
-                "time":"2026.01.28 (Wed) 12:00"}];
-            // },{
-            //     "city":"台北市",
-            //     "location":"新店",
-            //     "airquality":{
-            //             "AQI":"72",
-            //             "status":"普通",
-            //             "pm2.5":"23",
-            //             "pm2.5_avg":"20.1",
-            //             "pm10":"28",
-            //             "pm10_avg":"31",
-            //             "o3":"49",
-            //             "o3_8hr":"29",
-            //             "co":"0.32",
-            //             "co_8hr":"0.3",
-            //             "so2":"1.1",
-            //             "no2":"15"
-            //     },
-            //     "time":"2026.01.28 (Wed) 12:00"
-            // },{
-            //     "city":"台北市",
-            //     "location":"土城",
-            //     "airquality":{
-            //             "AQI":"78",
-            //             "status":"普通",
-            //             "pm2.5":"26",
-            //             "pm2.5_avg":"22.3",
-            //             "pm10":"48",
-            //             "pm10_avg":"38",
-            //             "o3":"48",
-            //             "o3_8hr":"28",
-            //             "co":"0.37",
-            //             "co_8hr":"0.4",
-            //             "so2":"0.9",
-            //             "no2":"16"
-            //     },
-            //     "time":"2026.01.28 (Wed) 12:00"
-            // }];
+                locationData.appendChild(dataContainer);
+            }else{
+                if (data.length !== 0){
+                    getTime(data[0]["time"]);
+                    createLocationObject(data);
+                }else{
+                    const dataContainer = document.createElement("div");
+                    dataContainer.classList.add("data-container-nodata");
+                    dataContainer.textContent = "抱歉，無相關資料做提供。";
 
-            getTime(data[0]["time"]);
-            createLocationObject(data);
-            
+                    locationData.appendChild(dataContainer);
+                }
+                
+            }
         }catch{
             const dataContainer = document.createElement("div");
             dataContainer.classList.add("data-container-nodata");
@@ -112,8 +76,6 @@ async function createLocationObject(data) {
 
             const location = data[k]["location"];
             const airQuality = data[k]["airquality"];
-            console.log(location);
-            console.log(airQuality);
             blockOne(location, airQuality, dataContainer);
             blockTwo(airQuality, dataContainer);
         }
@@ -147,11 +109,7 @@ async function blockOne(location, airQuality, dataContainer) {
     const anotherStatus = document.createElement("div");
     anotherStatus.classList.add("another-status");
     anotherStatus.textContent = String(airQuality["status"]);
-    // const anotherPollutant = document.createElement("div");
-    // anotherPollutant.classList.add("another-pollutant");
-    // anotherPollutant.textContent = "細懸浮微粒";
     textLocationAnother.appendChild(anotherStatus);
-    //textLocationAnother.appendChild(anotherPollutant);
     // 將文字部分組合
     blockOneText.appendChild(textLocationTitle);
     blockOneText.appendChild(textLocationAnother);
@@ -172,6 +130,7 @@ async function blockOne(location, airQuality, dataContainer) {
     circlePathTwo.classList.add("chart-slideRail");
     circlePathTwo.setAttribute("d", "M10 60 a 10 10 0 0 1 0 0 a 50 50 0 0 1 100 0");
     circlePathTwo.setAttribute("pathLength", "500");
+    aqiColor(parseInt(airQuality["AQI"]), circlePathTwo);
     // const scope = ;
     circlePathTwo.style.strokeDasharray=`${String(airQuality["AQI"])}, 500`;
     chartCircle.appendChild(circlePathOne);
@@ -195,6 +154,25 @@ async function blockOne(location, airQuality, dataContainer) {
     dataBlockOne.appendChild(blockOneChart);
 
     dataContainer.appendChild(dataBlockOne);
+}
+
+// 選取AQI的顏色
+function aqiColor(value, obj) {
+    if (value >= 0 && value <= 50){
+        obj.style.stroke = "#00d084";
+    }else if (value >= 51 && value <= 100){
+        obj.style.stroke = "#ffd93d";
+    }else if (value >= 101 && value <= 150){
+        obj.style.stroke = "#ff8c42";
+    }else if (value >= 151 && value <= 200){
+        obj.style.stroke = "#ff4757";
+    }else if (value >= 201 && value <= 300){
+        obj.style.stroke = "#a55eea";
+    }else if (value >= 301 && value <= 500){
+        obj.style.stroke = "#8b0000";
+    }else{
+        obj.style.stroke = "#000";
+    }
 }
 
 async function blockTwo(airQuality, dataContainer) {
